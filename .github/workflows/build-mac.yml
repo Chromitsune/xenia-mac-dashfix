@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest # This explicitly forces an Intel Mac! No more ARM64 errors!
+    runs-on: macos-12 
 
     steps:
     - name: Checkout Code
@@ -18,10 +18,24 @@ jobs:
       run: |
         brew install sdl2
 
-    - name: Setup & Build Xenia
+    - name: The FFmpeg Nuke (Bypass Audio/Architecture Crashes)
+      run: |
+        sed -i '' '/"libavcodec",/d' src/xenia/gpu/metal/premake5.lua
+        sed -i '' '/"libavcodec",/d' src/xenia/app/premake5.lua
+        sed -i '' '/"libavutil",/d' src/xenia/gpu/metal/premake5.lua
+        sed -i '' '/"libavutil",/d' src/xenia/app/premake5.lua
+        sed -i '' '/"third_party\/FFmpeg"/d' premake5.lua
+        sed -i '' 's/return std::make_unique<FFmpegVideoDecoder>();/return nullptr;/g' src/xenia/emulator.cc
+        touch third_party/FFmpeg/premake5.lua
+
+    - name: Setup Premake
       run: |
         python3 xenia-build.py setup
-        python3 xenia-build.py build
+
+    - name: Force Xcode Intel Compile (x86_64 + AVX)
+      run: |
+        cd build
+        xcodebuild -workspace xenia.xcworkspace -configuration Debug -scheme xenia-app ONLY_ACTIVE_ARCH=NO VALID_ARCHS="x86_64" ARCHS="x86_64" -destination 'generic/platform=macOS,name=Any Mac' OTHER_CPLUSPLUSFLAGS='$(inherited) -mavx -mavx2' OTHER_CFLAGS='$(inherited) -mavx -mavx2'
 
     - name: Upload Compiled App
       uses: actions/upload-artifact@v4
