@@ -14,6 +14,10 @@ jobs:
       with:
         submodules: recursive
 
+    - name: Initialize Submodules
+    run: |
+      git submodule update --init --recursive --depth=1 -j $(sysctl -n hw.ncpu)
+
     - name: Install Dependencies
       run: |
         brew install sdl2 ffmpeg
