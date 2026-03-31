@@ -3,28 +3,26 @@ on:
   workflow_dispatch:
   push:
     branches: [ "fix-metal-text-swizzle" ]
-
 jobs:
   build:
     runs-on: macos-26-intel
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
       with:
         submodules: recursive
-
     - name: Install Dependencies
       run: |
-        brew install sdl2
-
+        brew install llvm sdl2
+        echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
+        echo "CC=$(brew --prefix llvm)/bin/clang" >> $GITHUB_ENV
+        echo "CXX=$(brew --prefix llvm)/bin/clang++" >> $GITHUB_ENV
     - name: Setup & Build Xenia
       run: |
         python3 xenia-build.py setup
-        python3 xenia-build.py build
-
+        python3 xenia-build.py build --config=release
     - name: Upload Compiled App
       uses: actions/upload-artifact@v4
       with:
         name: Xenia-Canary-Mac-App
-        path: build/bin/
+        path: build/bin/Mac/Release/
