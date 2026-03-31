@@ -16,17 +16,19 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        brew install sdl2
+        brew install sdl2 ffmpeg
+        gem install xcpretty
 
-    - name: The FFmpeg Nuke (Bypass Audio/Architecture Crashes)
-      run: |
-        sed -i '' '/"libavcodec",/d' src/xenia/gpu/metal/premake5.lua
-        sed -i '' '/"libavcodec",/d' src/xenia/app/premake5.lua
-        sed -i '' '/"libavutil",/d' src/xenia/gpu/metal/premake5.lua
-        sed -i '' '/"libavutil",/d' src/xenia/app/premake5.lua
-        sed -i '' '/"third_party\/FFmpeg"/d' premake5.lua
-        sed -i '' 's/return std::make_unique<FFmpegVideoDecoder>();/return nullptr;/g' src/xenia/emulator.cc
-        touch third_party/FFmpeg/premake5.lua
+    # FFmpeg disabled for font swizzle test - re-enable by uncommenting after test passes
+    # - name: The FFmpeg Nuke (Bypass Audio/Architecture Crashes)
+    #   run: |
+    #     sed -i '' '/"libavcodec",/d' src/xenia/gpu/metal/premake5.lua
+    #     sed -i '' '/"libavcodec",/d' src/xenia/app/premake5.lua
+    #     sed -i '' '/"libavutil",/d' src/xenia/gpu/metal/premake5.lua
+    #     sed -i '' '/"libavutil",/d' src/xenia/app/premake5.lua
+    #     sed -i '' '/"third_party\/FFmpeg"/d' premake5.lua
+    #     sed -i '' 's/return std::make_unique<FFmpegVideoDecoder>();/return nullptr;/g' src/xenia/emulator.cc
+    #     touch third_party/FFmpeg/premake5.lua
 
     - name: Setup Premake
       run: |
@@ -35,7 +37,21 @@ jobs:
     - name: Force Xcode Intel Compile (x86_64 + AVX)
       run: |
         cd build
-        xcodebuild -workspace xenia.xcworkspace -configuration Debug -scheme xenia-app ONLY_ACTIVE_ARCH=NO VALID_ARCHS="x86_64" ARCHS="x86_64" -destination 'generic/platform=macOS,name=Any Mac' OTHER_CPLUSPLUSFLAGS='$(inherited) -mavx -mavx2' OTHER_CFLAGS='$(inherited) -mavx -mavx2'
+        set -o pipefail
+        xcodebuild -workspace xenia.xcworkspace \
+          -configuration Debug \
+          -scheme xenia-app \
+          ONLY_ACTIVE_ARCH=NO \
+          VALID_ARCHS="x86_64" \
+          ARCHS="x86_64" \
+          -destination 'generic/platform=macOS,name=Any Mac' \
+          OTHER_CPLUSPLUSFLAGS='$(inherited) -mavx -mavx2' \
+          OTHER_CFLAGS='$(inherited) -mavx -mavx2' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO \
+          2>&1 | tee ../xenia-build.log | xcpretty --color || \
+        (echo "=== LAST 300 LINES OF BUILD LOG ===" && tail -n 300 ../xenia-build.log && exit 1)
 
     - name: Upload Compiled App
       uses: actions/upload-artifact@v4
