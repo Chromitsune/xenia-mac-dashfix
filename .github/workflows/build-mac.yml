@@ -16,7 +16,7 @@ jobs:
 
     - name: Initialize Submodules
     run: |
-      git submodule update --init --recursive --depth=1 -j $(sysctl -n hw.ncpu)
+        git submodule update --init --recursive --depth=1 -j $(sysctl -n hw.ncpu)
 
     - name: Install Dependencies
       run: |
