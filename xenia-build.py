@@ -90,7 +90,7 @@ def import_subprocess_environment(args):
         "WindowsSdkDir",
         "PROGRAMFILES",
         "ProgramFiles(x86)",
-        "VULKAN_SDK"
+        "VULKAN_SDK",
         "CC",
         "CXX",
         )
